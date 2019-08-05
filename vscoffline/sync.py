@@ -254,8 +254,9 @@ class VSCMarketplace(object):
    
     session = requests.session()
 
-    def __init__(self, insider):
+    def __init__(self, insider, version_depth=1):
         self.insider = insider
+        self.version_depth = version_depth
 
     def get_recommendations(self, destination):
         recommendations = self.search_top_n(n=200)
@@ -425,8 +426,13 @@ class VSCMarketplace(object):
 
     def _query_flags(self):
         #return QueryFlags(914)
-        return vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
-            vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
+        flags = vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
+            vsc.QueryFlags.IncludeStatistics
+
+        if self.version_depth == 1:
+            flags = flags | vsc.QueryFlags.IncludeLatestVersionOnly
+
+        return flags
 
     def _headers(self, version='1.34.0'):
         if self.insider:
@@ -466,6 +472,7 @@ if __name__ == '__main__':
     parser.add_argument('--update-malicious-extensions', dest='updatemalicious', action='store_true', help='Update the malicious extension list')
     parser.add_argument('--skip-binaries', dest='skipbinaries', action='store_true', help='Skip downloading binaries')
     parser.add_argument('--debug', dest='debug', action='store_true', help='Show debug output')
+    parser.add_argument('--version-depth', dest='versiondepth', help='Number of versions to pull, 1 for latest only, 0 for all versions', default='1')
     config = parser.parse_args()
     
     if config.debug:
@@ -503,7 +510,7 @@ if __name__ == '__main__':
     while True:        
         versions = []
         extensions = {}
-        mp = VSCMarketplace(config.checkinsider)
+        mp = VSCMarketplace(config.checkinsider, config.versiondepth)
 
         if config.checkbinaries and not config.skipbinaries:
             log.info('Syncing VS Code Versions')
